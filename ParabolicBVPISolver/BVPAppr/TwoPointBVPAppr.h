@@ -43,11 +43,17 @@ public:
 
 	vector<double> Solve(int max_num_iter, double TOL);
 
+	vector<double> Solve(int max_num_iter, double TOL, vector<double>intitalU);
+
 	double find_max_error(int max_iters, double TOL);
+
+	double find_max_error(int max_iters,
+			double TOL, vector<double> intialU);
 
 	tridiagonal_matrix * calcDiffusion();
 
-
+	void calcReaction(vector<double> &, 
+			vector<double> &, vector<double> &);
 
 	vector<double> calcLumpedMass();
 
