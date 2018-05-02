@@ -30,8 +30,10 @@ protected:
 	//------------------------For PDEs-------------------------------------
 
 	//---------------------------------------------------------------------
-	double (*ga)(vector<double> &t);
-	double(*gb)(vector<double> &t);
+	double gamma_a;
+	double gamma_b;
+	double (*ga)(double &t);
+	double(*gb)(double &t);
 
 
 
@@ -109,15 +111,22 @@ public:
 	//----------------For PDEs---------------------------------------------
 
 	//---------------------------------------------------------------------
-	void set_left_bdry(bool _leftIsDirichlet, double gamma,
-		double(*ga)(vector<double> &));
+	
+	
+	void set_left_bdry(bool _leftIsDirichlet, double gamma_l,
+		double(*ga)(double &));
 
-	void set_right_bdry(bool _leftIsDirichlet, double gamma,
-		double(*gb)(vector<double> &));
+	void set_right_bdry(bool _leftIsDirichlet, double gamma_r,
+		double(*gb)(double &));
+
 
 	double calcLeftBdry(double t);
 
-	double calcRightBdry(double t);
+    double calcRightBdry(double t);
+
+	void AssembleLeftBdry(double t);
+
+	void AssembleRightBdry(double t);
 
 	// TwoPointBVP Destructor
 	~TwoPointBVP();

@@ -1,2 +1,5 @@
 ﻿  testappr.cpp
-  BVPAppr.vcxproj -> C:\cppSource\BVPApprSemiLinear\Debug\BVPAppr.exe
+  twoPointBVP.cpp
+  TwoPointBVPAppr.cpp
+  Generating Code...
+c:\cppsource\charmander\parabolicbvpisolver\bvpappr\twopointbvp.cpp(218): error C4700: uninitialized local variable 'val' used

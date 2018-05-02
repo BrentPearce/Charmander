@@ -169,7 +169,8 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 	return;
 }
 
-vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, double domRight)
+vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, 
+											double domRight)
 {
 	vector<double> trueSoln(numEvals);
 	double steps = (domRight-domLeft) / (numEvals-1);
@@ -186,24 +187,46 @@ vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, double d
 
 //-------------------------------------------------------------------------
 
-void TwoPointBVP::set_left_bdry(bool _leftIsDirichlet, double gamma, 
-								double(*ga)(vector<double>&))
+void TwoPointBVP::set_left_bdry(bool _leftIsDirichlet, double gamma_l, 
+								double(*g_a)(double &))
 {
 	leftBdryIsDirichlet = _leftIsDirichlet;
+	ga = g_a;
+	gamma_a = gamma_l;
 }
 
-void TwoPointBVP::set_right_bdry(bool _leftIsDirichlet, double gamma, double(*gb)(vector<double>&))
+void TwoPointBVP::set_right_bdry(bool _rightIsDirichlet, double gamma_r, 
+								double(*g_b)(double &))
 {
+	rightBdryIsDirichlet = _rightIsDirichlet;
+	gb = g_b;
+	gamma_b = gamma_r;
 }
 
 double TwoPointBVP::calcLeftBdry(double t)
 {
-	return 0.0;
+	return ga(t);
 }
 
 double TwoPointBVP::calcRightBdry(double t)
 {
-	return 0.0;
+	return gb(t);
+}
+
+void TwoPointBVP::AssembleLeftBdry(double t)
+{
+	double* val;
+	val[0] = gamma_a;
+	val[1] = calcLeftBdry(t);
+	leftBdryValues = val;
+}
+
+void TwoPointBVP::AssembleRightBdry(double t)
+{
+	double* val;
+	val[0] = gamma_b;
+	val[1] = calcRightBdry(t);
+	rightBdryValues = val;
 }
 
 TwoPointBVP::~TwoPointBVP()
