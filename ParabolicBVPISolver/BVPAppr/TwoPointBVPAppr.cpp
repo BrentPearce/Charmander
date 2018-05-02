@@ -3,15 +3,18 @@
 #include "TwoPointBVPAppr.h"
 
 
-TwoPointBVPAppr::TwoPointBVPAppr(int N, const double * subintervallengths, const TwoPointBVP * prob)
+TwoPointBVPAppr::TwoPointBVPAppr(int N, const double * subintervallengths, 
+								const TwoPointBVP * prob)
 {
 	numsubintervals = N;
 	steplenghts = subintervallengths;
 	theproblem = prob;
 
-	// if either reaction or external force is present, then we need Delta x_i
-	if (theproblem->reaction_is_present() || theproblem->forcing_fucntion_is_present())
-	{
+	// if either reaction or external force is present,
+	//then we need Delta x_i
+
+	if (theproblem->reaction_is_present()
+		|| theproblem->forcing_fucntion_is_present()){
 		Deltax.resize(numsubintervals + 1);
 		Deltax[0] = 0.5 * steplenghts[0];
 		for (int i = 1; i < numsubintervals; i++)
@@ -50,7 +53,8 @@ int TwoPointBVPAppr::get_numsubintervals()
 	return	numsubintervals;
 }
 
-void TwoPointBVPAppr::set_intial_guess_seed(double(*guessSeed)(vector<double> &))
+void TwoPointBVPAppr::set_intial_guess_seed
+		(double(*guessSeed)(vector<double> &))
 {
 	intialGuessSeed = guessSeed;
 	guess_seed_is_present = true;
@@ -206,7 +210,8 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 			// ff-g_0
 			double *LBC = theproblem->get_left_bdry_values();
 			par[0] = xcoord[0];
-			FF[0] = theproblem->eval_forcing_function(par)*Deltax[0] - LBC[1];
+			FF[0] = theproblem->eval_forcing_function(par)*Deltax[0] 
+															- LBC[1];
 		}
 
 		//interior points
@@ -408,11 +413,11 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 }
 
 
-////----------------Solve for PDEs-------------------------------------------
+////----------------Solve for PDEs-----------------------------------------
 
-////-------------------------------------------------------------------------
+////-----------------------------------------------------------------------
 vector<double> TwoPointBVPAppr::Solve(int max_num_iter,
-								double TOL, vector<double> intitalU)
+								double TOL, vector<double> intialU)
 {
 	int iteration_counter = 0;
 	double norm;
@@ -427,28 +432,10 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter,
 	F = AssembleForce();
 
 	//Create intial guess of Soln vector U
-	vector<double> U(numsubintervals + 1, 3.0);
-	//if there is a seed function present use it to form 
-	//the intial guess for the U solution vector.
-	if (guess_seed_is_present)
-	{
-		vector<double> par(1);
-		vector<double> U(numsubintervals + 1, 3.0);
-		U[0] = F[0];
-		for (int i = 1; i < numsubintervals; i++)
-		{
-			par[0] = xcoord[i];
-			U[i] = eval_intial_guess_seed(par);
-		}
-		U[numsubintervals] = F[numsubintervals];
-	}
-	//if a seed isn't present set all interior points to the same number.
-	else
-	{
-		U[0] = F[0];
-		U[numsubintervals] = F[numsubintervals];
-	}
-
+	vector<double> U;
+	U = intialU;
+	
+	// Create h, G and AU
 	vector<double> h(numsubintervals + 1, 0.0);
 	vector<double> G(numsubintervals + 1, 0.0);
 	vector<double> AU(numsubintervals + 1);
@@ -495,7 +482,7 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter,
 		//find the norm of h to see if iterations continue
 		norm = find_l2_norm(h);
 
-		//determine if the condition ||U_n+1 - U_n|| < Tolerance has been met
+		//determine if the condition ||U_n+1 - U_n||<Tolerance has been met
 		if (norm < TOL)
 		{
 			// if met, break from loop and stop iterations
@@ -509,15 +496,23 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter,
 	if (iteration_counter == max_num_iter)
 	{
 		std::ofstream ofs;
-		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence not reached within max number of iterations:  " << max_num_iter << endl;
+		ofs.open("problem_info.txt", std::ofstream::out |
+			std::ofstream::app);
+
+		ofs << " Convergence not reached within max number of iterations: "
+			<< max_num_iter << endl;
+
 		ofs.close();
 	}
 	else
 	{
 		std::ofstream ofs;
-		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence was reached at iterations = " << iteration_counter << endl;
+		ofs.open("problem_info.txt", std::ofstream::out 
+				| std::ofstream::app);
+
+		ofs << " Convergence was reached at iterations = "
+			<< iteration_counter << endl;
+
 		ofs.close();
 	}
 
@@ -527,9 +522,9 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter,
 }
 
 
-////----------find_max_error for ODEs w/ linear and semilinear reactions----
+////----------find_max_error for ODEs w/ linear and semilinear reactions---
 
-//--------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 double TwoPointBVPAppr::find_max_error(int max_iters, double TOL)
 {
 	//generate an approximate solution
@@ -572,9 +567,9 @@ double TwoPointBVPAppr::find_max_error(int max_iters, double TOL)
 }
 
 
-//----------find_max_error for PDEs ----------------------------------------
+//----------find_max_error for PDEs ---------------------------------------
 
-//--------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 double TwoPointBVPAppr::find_max_error(int max_iters,
 			double TOL, vector<double> intialU)
 {
@@ -630,11 +625,24 @@ void TwoPointBVPAppr::calcReaction(vector<double> &U,
 	AssembleReaction(U, RW, RPW);
 }
 
-
-
 vector<double> TwoPointBVPAppr::calcLumpedMass()
 {
+	vector<double> lumpedMass(numsubintervals + 1);
+	
+	lumpedMass[0] = steplenghts[0]/2.0;
 
+	for (int i = 1; i < numsubintervals; i++)
+	{
+		lumpedMass[i] = (steplenghts[i - 1] + steplenghts[i]) / 2.0;
+	}
+
+	lumpedMass[numsubintervals] = steplenghts[numsubintervals] / 2.0;
+
+	return lumpedMass;
+}
+
+vector<double> TwoPointBVPAppr::calcForce(double timelevel) 
+{
 	return vector<double>();
 }
 

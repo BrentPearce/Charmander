@@ -31,7 +31,8 @@ protected:
 
 public:
 
-	TwoPointBVPAppr(int N, const double *subintervallengths, const TwoPointBVP *prob);
+	TwoPointBVPAppr(int N, const double *subintervallengths, 
+					const TwoPointBVP *prob);
 
 	vector<double> get_xcoord();
 
@@ -43,7 +44,8 @@ public:
 
 	vector<double> Solve(int max_num_iter, double TOL);
 
-	vector<double> Solve(int max_num_iter, double TOL, vector<double>intitalU);
+	vector<double> Solve(int max_num_iter, double TOL,
+						vector<double>intitalU);
 
 	double find_max_error(int max_iters, double TOL);
 
@@ -56,6 +58,8 @@ public:
 			vector<double> &, vector<double> &);
 
 	vector<double> calcLumpedMass();
+
+	vector<double> calcForce(double timelevel);
 
 
 	~TwoPointBVPAppr();

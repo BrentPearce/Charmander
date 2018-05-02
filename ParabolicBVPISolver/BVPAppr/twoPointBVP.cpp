@@ -1,7 +1,7 @@
 #include "twoPointBVP.h"
 
 
-// A C++ class implementation for two point BVPs
+// A C++ class implementation for two point BVPs and some other stuff
 
 TwoPointBVP::TwoPointBVP(double *dom, double(*dFunc) (vector<double> &))
 {
@@ -164,12 +164,10 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 		fileout << " Forcing function is not present. \n";
 	}
 
-	fileout << "************************************************************************ \n";
+	fileout << "******************************************************* \n";
 	fileout.close();
 	return;
 }
-
-
 
 vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, double domRight)
 {
@@ -182,6 +180,30 @@ vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, double d
 		trueSoln[i] = eval_true_solution(value);
 	}
 	return trueSoln;
+}
+
+//---------------For PDEs--------------------------------------------------
+
+//-------------------------------------------------------------------------
+
+void TwoPointBVP::set_left_bdry(bool _leftIsDirichlet, double gamma, 
+								double(*ga)(vector<double>&))
+{
+	leftBdryIsDirichlet = _leftIsDirichlet;
+}
+
+void TwoPointBVP::set_right_bdry(bool _leftIsDirichlet, double gamma, double(*gb)(vector<double>&))
+{
+}
+
+double TwoPointBVP::calcLeftBdry(double t)
+{
+	return 0.0;
+}
+
+double TwoPointBVP::calcRightBdry(double t)
+{
+	return 0.0;
 }
 
 TwoPointBVP::~TwoPointBVP()

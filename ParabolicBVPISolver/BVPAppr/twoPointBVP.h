@@ -17,13 +17,24 @@ protected:
 	double * leftBdryValues; // contains gamma_0 and g_0 (see course notes)
 	double * rightBdryValues; // contains gamma_0 and g_0 (see course notes)
 	bool reactionIsPresent; // value is "true" if there is a reaction
-	bool forcingFunctIsPresent; // value is "true if there is a forcing funtion(ie not homogenous)
+	bool forcingFunctIsPresent; // value is "true if there is a forcing 
+								//funtion(ie not homogenous)
 	bool trueSolIsPresent; // value is true if there is a true solution
 	double(*diffusion) (vector<double> &); // diffusion coeff, k(x)
 	double(*reaction) (vector<double> &); // reaction coeff, r(x)
-	double(*partialreactionpartialu) (vector<double> &); //pd_r/pd_u evaled at (x,u)
+	double(*partialreactionpartialu) (vector<double> &); //pd_r/pd_u 
+														//evaled at (x,u)
 	double(*forcingFunct) (vector<double> &); // forcing function f(x)
 	double(*trueSolu) (vector<double> &); // true solution
+
+	//------------------------For PDEs-------------------------------------
+
+	//---------------------------------------------------------------------
+	double (*ga)(vector<double> &t);
+	double(*gb)(vector<double> &t);
+
+
+
 public:
 	//Constructor of the class, it takes two input.
 	TwoPointBVP(double *dom, double(*dFunc) (vector<double> &));
@@ -92,7 +103,21 @@ public:
 	// Return a vector with numEvals evenly spaced evaluations
 	// of the true solution including and between domLeft and
 	// domRight
-	vector<double> true_solution(int numEvals, double domLeft, double domRight);
+	vector<double> true_solution(int numEvals, double domLeft, 
+								double domRight);
+
+	//----------------For PDEs---------------------------------------------
+
+	//---------------------------------------------------------------------
+	void set_left_bdry(bool _leftIsDirichlet, double gamma,
+		double(*ga)(vector<double> &));
+
+	void set_right_bdry(bool _leftIsDirichlet, double gamma,
+		double(*gb)(vector<double> &));
+
+	double calcLeftBdry(double t);
+
+	double calcRightBdry(double t);
 
 	// TwoPointBVP Destructor
 	~TwoPointBVP();
