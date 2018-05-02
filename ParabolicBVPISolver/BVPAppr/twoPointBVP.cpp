@@ -111,39 +111,47 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 	ofstream fileout;
 	fileout.open("problem_info.txt");
 	fileout << "************************************************************************ \n";
-	fileout << " Some info regarding the two point BVP problem and approximation: \n";
+	fileout << " Some info regarding the two" << 
+	" point BVP problem and approximation: \n";
 
 
-	fileout << " Domain is:(" << domain[0] << "," << domain[1] << ")" << endl;
+	fileout << " Domain is:(" << domain[0] << "," << domain[1] << ")" 
+			<< endl;
 
 	if (leftBdryIsDirichlet)
 	{
-		fileout << " Left boundary is Dirichlet with value: " << leftBdryValues[1] << endl;
+		fileout << " Left boundary is Dirichlet with value: " 
+				<< leftBdryValues[1] << endl;
 	}
 	else if (leftBdryValues[0] == 0)
 	{
-		fileout << " Left Boundary is Neumann with g_0: " << leftBdryValues[1] << endl;
+		fileout << " Left Boundary is Neumann with g_0: " 
+				<< leftBdryValues[1] << endl;
 	}
 	else
 	{
-		fileout << " Left Boundary is Robin with gamma_0: " << leftBdryValues[0]
-			<< " and g_0: " << leftBdryValues[1] << endl;
+		fileout << " Left Boundary is Robin with gamma_0: " 
+				<< leftBdryValues[0]
+				<< " and g_0: " << leftBdryValues[1] << endl;
 	}
 
 
 
 	if (rightBdryIsDirichlet)
 	{
-		fileout << " Right boundary is Dirichlet with value: " << rightBdryValues[1] << endl;
+		fileout << " Right boundary is Dirichlet with value: " 
+				<< rightBdryValues[1] << endl;
 	}
 	else if (rightBdryValues[0] == 0)
 	{
-		fileout << " Right Boundary is Neumann with g_L: " << rightBdryValues[1] << endl;
+		fileout << " Right Boundary is Neumann with g_L: " 
+				<< rightBdryValues[1] << endl;
 	}
 	else
 	{
-		fileout << " Right Boundary is Robin with gamma_L: " << rightBdryValues[0]
-			<< " and g_L: " << rightBdryValues[1] << endl;
+		fileout << " Right Boundary is Robin with gamma_L: " 
+				<< rightBdryValues[0]
+				<< " and g_L: " << rightBdryValues[1] << endl;
 	}
 
 	if (reactionIsPresent)
@@ -213,21 +221,18 @@ double TwoPointBVP::calcRightBdry(double t)
 	return gb(t);
 }
 
-void TwoPointBVP::AssembleLeftBdry(double t)
+void TwoPointBVP::AssembleBdrys(double t)
 {
-	double* val;
+	double *val;
 	val[0] = gamma_a;
 	val[1] = calcLeftBdry(t);
 	leftBdryValues = val;
-}
-
-void TwoPointBVP::AssembleRightBdry(double t)
-{
-	double* val;
 	val[0] = gamma_b;
 	val[1] = calcRightBdry(t);
 	rightBdryValues = val;
 }
+
+
 
 TwoPointBVP::~TwoPointBVP()
 {

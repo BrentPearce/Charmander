@@ -103,8 +103,7 @@ public:
 	void display_info_TwoPointBVP() const;
 
 	// Return a vector with numEvals evenly spaced evaluations
-	// of the true solution including and between domLeft and
-	// domRight
+	// of the true solution including and between domLeft and domRight
 	vector<double> true_solution(int numEvals, double domLeft, 
 								double domRight);
 
@@ -124,9 +123,7 @@ public:
 
     double calcRightBdry(double t);
 
-	void AssembleLeftBdry(double t);
-
-	void AssembleRightBdry(double t);
+	void AssembleBdrys(double t);
 
 	// TwoPointBVP Destructor
 	~TwoPointBVP();

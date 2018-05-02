@@ -123,8 +123,12 @@ void TwoPointBVPAppr::AssembleDiffusion(tridiagonal_matrix *tmat)
 		// it is either nuemen or robin (if nueman then gamma_n = 0)
 		double *RBV;
 		RBV = theproblem->get_right_bdry_values();
-		tmat->set_diagonal_entry(numsubintervals, kappa[numsubintervals-1] - RBV[0]);
-		tmat->set_lower_diagonal_entry(numsubintervals - 1, -kappa[numsubintervals-1]);
+
+		tmat->set_diagonal_entry(numsubintervals, 
+								 kappa[numsubintervals-1]- RBV[0]);
+
+		tmat->set_lower_diagonal_entry(numsubintervals - 1, 
+									   -kappa[numsubintervals-1]);
 	}
 }
 
@@ -132,7 +136,8 @@ void TwoPointBVPAppr::AssembleReaction(vector<double> &U,
 		vector<double> &RW, vector<double> &RPW )
 {
 
-	//U is our Solution, RW is the new reaction force and RPW is the partial derivative of RW
+	//U is our Solution, RW is the new reaction force and 
+	//RPW is the partial derivative of RW
 
 	vector <double> par(2);
 	vector <double> val(2);
@@ -192,9 +197,8 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 	
 	vector <double> par(1);
 	
-	//if there is a forcing function
-	// set all terms equal to forcing function
-	// or boundary conditions or both
+	//if there is a forcing function set all terms equal to the forcing 
+	//function and boundary conditions.
 	if (theproblem ->forcing_fucntion_is_present())
 	{
 		// Left boundary
@@ -236,7 +240,10 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 			//if it is Nueman or Robin then the rhs is FF-g_L
 			double *RBC = theproblem->get_right_bdry_values();
 			par[0] = xcoord[numsubintervals];
-			FF[numsubintervals] = theproblem->eval_forcing_function(par)*Deltax[numsubintervals] - RBC[1];
+			
+			FF[numsubintervals] =
+			theproblem->eval_forcing_function(par)*Deltax[numsubintervals] 
+			- RBC[1];
 		}
 	}
 
@@ -295,9 +302,6 @@ double find_l2_norm(vector<double> const x)
 	 return sqrt(sum_o_squares);
 }
 
-////----Solve for Odes w/ linear and semilinear Reactions------------------
-
-////-----------------------------------------------------------------------
 vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 {
 	int iteration_counter = 0;
@@ -396,14 +400,20 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 	{
 		std::ofstream ofs;
 		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence not reached within max number of iterations:  " << max_num_iter << endl;
+
+		ofs << " Convergence not reached within max number of iterations:  "
+			<< max_num_iter << endl;
+
 		ofs.close();
 	}
 	else
 	{
 		std::ofstream ofs;
 		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence was reached at iterations = " << iteration_counter << endl;
+
+		ofs << " Convergence was reached at iterations = " 
+			<< iteration_counter << endl;
+		
 		ofs.close();
 	}
 
@@ -412,119 +422,6 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 	return U;
 }
 
-
-////----------------Solve for PDEs-----------------------------------------
-
-////-----------------------------------------------------------------------
-vector<double> TwoPointBVPAppr::Solve(int max_num_iter,
-								double TOL, vector<double> intialU)
-{
-	int iteration_counter = 0;
-	double norm;
-	tridiagonal_matrix *Gp, *A;
-	vector<double> R(numsubintervals + 1, 0.0);
-	vector<double>Rp(numsubintervals + 1, 0.0);
-	vector<double>F;
-	A = new tridiagonal_matrix(numsubintervals + 1);
-	// Calculate the tridiagonal matrix coming from diffusion component.
-	AssembleDiffusion(A);
-	// Create the forcing function
-	F = AssembleForce();
-
-	//Create intial guess of Soln vector U
-	vector<double> U;
-	U = intialU;
-	
-	// Create h, G and AU
-	vector<double> h(numsubintervals + 1, 0.0);
-	vector<double> G(numsubintervals + 1, 0.0);
-	vector<double> AU(numsubintervals + 1);
-
-	// The iteration
-	for (int iter = 1; iter <= max_num_iter; iter++)
-	{
-		// Copy A to Gp
-		Gp = new tridiagonal_matrix(A);
-
-		// if there is a reaction calculate r(x,u) and pd(r(x,u),u)
-		if (theproblem->reaction_is_present())
-		{
-			AssembleReaction(U, R, Rp);
-			for (int i = 0; i < numsubintervals + 1; i++)
-				Gp->add_to_diagonal_entry(i, Rp[i]);
-		}
-
-		//Multiply the Matrix A and the vector U
-		AU = A->Mult(U);
-
-		//for loop to  create each entry of the vector G
-		for (int i = 0; i <= numsubintervals; i++)
-		{
-			G[i] = -1 * (AU[i] + R[i] - F[i]);
-		}
-
-		//solve for h to update U
-		//first transform Gp
-		Gp->transform();
-
-		//solve the linear system for h
-		h = Gp->solve_linear_system(G);
-
-		//Update U
-		for (int i = 0; i <= numsubintervals; i++)
-		{
-			U[i] = U[i] + h[i];
-		}
-
-		//delete the Tridiagonal Matrix Gp associated with the iteration
-		delete Gp;
-
-		//find the norm of h to see if iterations continue
-		norm = find_l2_norm(h);
-
-		//determine if the condition ||U_n+1 - U_n||<Tolerance has been met
-		if (norm < TOL)
-		{
-			// if met, break from loop and stop iterations
-			break;
-		}
-
-		// update iteration counter
-		iteration_counter = iter;
-	}
-
-	if (iteration_counter == max_num_iter)
-	{
-		std::ofstream ofs;
-		ofs.open("problem_info.txt", std::ofstream::out |
-			std::ofstream::app);
-
-		ofs << " Convergence not reached within max number of iterations: "
-			<< max_num_iter << endl;
-
-		ofs.close();
-	}
-	else
-	{
-		std::ofstream ofs;
-		ofs.open("problem_info.txt", std::ofstream::out 
-				| std::ofstream::app);
-
-		ofs << " Convergence was reached at iterations = "
-			<< iteration_counter << endl;
-
-		ofs.close();
-	}
-
-	delete A;
-
-	return U;;
-}
-
-
-////----------find_max_error for ODEs w/ linear and semilinear reactions---
-
-//-------------------------------------------------------------------------
 double TwoPointBVPAppr::find_max_error(int max_iters, double TOL)
 {
 	//generate an approximate solution
@@ -566,52 +463,6 @@ double TwoPointBVPAppr::find_max_error(int max_iters, double TOL)
 	return max_error;
 }
 
-
-//----------find_max_error for PDEs ---------------------------------------
-
-//-------------------------------------------------------------------------
-double TwoPointBVPAppr::find_max_error(int max_iters,
-			double TOL, vector<double> intialU)
-{
-	//generate an approximate solution
-
-	vector<double> approximate_solution = Solve(max_iters, TOL, intialU);
-	int numberSubintervals = get_numsubintervals();
-
-	// Evaluate the true solution at all the xcoords
-	vector<double> true_solution(numberSubintervals);
-	vector<double> x(1);
-
-	for (int i = 0; i < numberSubintervals; i++)
-	{
-		x[0] = xcoord[i];
-		true_solution[i] = theproblem->eval_true_solution(x);
-	}
-
-	// Compare the true solution to the  approximate 
-	// solution and store/update the bigest error found
-	// durring the sweep.
-
-	// create error at x_i and intialize max error
-	double max_error = -1;
-	double ex_i;
-
-	//for loop to find and update max error
-	for (int i = 0; i < numberSubintervals; i++)
-	{
-		// calculate the current error
-		ex_i = fabs(true_solution[i] - approximate_solution[i]);
-		// compare the absolute value of the errors 
-		if (max_error < ex_i)
-		{
-			max_error = ex_i;
-		}
-
-	}
-
-	return max_error;
-}
-
 tridiagonal_matrix *TwoPointBVPAppr::calcDiffusion()
 {
 tridiagonal_matrix *tmat = new tridiagonal_matrix(numsubintervals+1);
@@ -628,22 +479,137 @@ void TwoPointBVPAppr::calcReaction(vector<double> &U,
 vector<double> TwoPointBVPAppr::calcLumpedMass()
 {
 	vector<double> lumpedMass(numsubintervals + 1);
-	
-	lumpedMass[0] = steplenghts[0]/2.0;
+	if (theproblem->left_bdry_is_Dirichlet())
+	{
+		lumpedMass[0] = 0;
+	}
+	else
+	{
+		lumpedMass[0] = steplenghts[0] / 2.0;
+	}
 
 	for (int i = 1; i < numsubintervals; i++)
 	{
 		lumpedMass[i] = (steplenghts[i - 1] + steplenghts[i]) / 2.0;
 	}
 
-	lumpedMass[numsubintervals] = steplenghts[numsubintervals] / 2.0;
+	if (theproblem->right_bdry_is_Dirichlet())
+	{
+		lumpedMass[numsubintervals] = 0;
+	}
+	else
+	{
+		lumpedMass[numsubintervals] = steplenghts[numsubintervals] / 2.0;
+	}
 
 	return lumpedMass;
 }
 
 vector<double> TwoPointBVPAppr::calcForce(double timelevel) 
 {
-	return vector<double>();
+	// This vector contains the force algebraic terms
+	vector<double> FF(numsubintervals + 1);
+
+	//Create a paramateter vector to store the current time and the varying
+	// xcoord to use inside eval_forcing_function(par)
+	vector <double> par(2);
+
+	//set the current time as the second element of the vector par(this
+	//minmizes changes needed).
+	par[1] = timelevel;
+
+	//if there is a forcing function set all terms equal to the forcing 
+	//function and boundary conditions.
+	if (theproblem->forcing_fucntion_is_present())
+	{
+		// Left boundary
+		if (theproblem->left_bdry_is_Dirichlet())
+		{
+			// when it is dirichlet the rhs[0] is simply g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			FF[0] = LBC[1];
+		}
+		else
+		{
+			//if it is Nueman or robin then the rhs[0] is
+			// ff-g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			par[0] = xcoord[0];
+			FF[0] = theproblem->eval_forcing_function(par)*Deltax[0]
+				- LBC[1];
+		}
+
+		//interior points
+		for (int i = 1; i < numsubintervals; i++)
+		{
+			//for the interior points the FF is governed soley by itself
+			par[0] = xcoord[i];
+			FF[i] = theproblem->eval_forcing_function(par)*Deltax[i];
+
+		}
+
+
+		// Right boundary
+		if (theproblem->right_bdry_is_Dirichlet())
+		{
+			//if it is Dirichlet then the rhs is g_L 
+			double *RBC = theproblem->get_right_bdry_values();
+			FF[numsubintervals] = RBC[1];
+		}
+		else
+		{
+			//if it is Nueman or Robin then the rhs is FF-g_L
+			double *RBC = theproblem->get_right_bdry_values();
+			par[0] = xcoord[numsubintervals];
+
+			FF[numsubintervals] =
+				theproblem->eval_forcing_function(par)*Deltax[numsubintervals]
+				- RBC[1];
+		}
+	}
+
+	//if there isnt a ForcingFunct then set FF all
+	//equal to zero except when otherwise dictated by BCs.
+	else
+	{
+		// Left boundary
+		if (theproblem->left_bdry_is_Dirichlet())
+		{
+			// when it is dirichlet the rhs[0] is simply g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			FF[0] = LBC[1];
+		}
+		else
+		{
+			//if it is Nueman or robin then the rhs[0] is
+			// ff-g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			FF[0] = -LBC[1];
+		}
+
+		//interior points
+		for (int i = 1; i < numsubintervals; i++)
+		{
+			//for the interior FF = 0
+			FF[i] = 0;
+		}
+
+		// Right boundary
+		if (theproblem->right_bdry_is_Dirichlet())
+		{
+			//if it is Dirichlet then the rhs[N] is g_L 
+			double *RBC = theproblem->get_right_bdry_values();
+			FF[numsubintervals] = RBC[1];
+		}
+		else
+		{
+			//if it is Nueman or Robin then the rhs is -g_L
+			double *RBC = theproblem->get_right_bdry_values();
+			FF[numsubintervals] = -RBC[1];
+		}
+	}
+
+	return FF;
 }
 
 TwoPointBVPAppr::~TwoPointBVPAppr()
