@@ -295,11 +295,11 @@ double find_l2_norm(vector<double> const x)
 {
 	int num_entries = x.size();
 	double sum_o_squares = 0;
-	for (int i = 0; i < num_entries ; i++)
+	for (int i = 0; i < num_entries; i++)
 	{
 		sum_o_squares = sum_o_squares + x[i] * x[i];
 	}
-	 return sqrt(sum_o_squares);
+	return sqrt(sum_o_squares);
 }
 
 vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)

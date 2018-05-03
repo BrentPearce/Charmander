@@ -36,18 +36,54 @@ vector<double> ForwardEuler::one_step_march(vector<double> &timeinterval,
 BackwardEuler::BackwardEuler(TwoPointBVPAppr * prob) : ParabolicIBVPSolver(prob)
 {
 	cout << " A Backward Euler Scheme is ultilized\n";
+
 }
 
-vector<double> BackwardEuler::one_step_march(vector<double> &timeinterval, vector<double> &Ul)
+double find_l2_norm(vector<double> const x)
 {
-	tridiagonal_matrix *A;
-	A = diffusionmat;
-	vector<double> F;
-
-	for (int i = 0; i <= numtimeintervals; i++)
+	int num_entries = x.size();
+	double sum_o_squares = 0;
+	for (int i = 0; i < num_entries; i++)
 	{
-		Ur[i] = Ul[i] - (timeinterval[1] - timeinterval[0]) * MInv[i] * G[i];
+		sum_o_squares = sum_o_squares + x[i] * x[i];
 	}
+	return sqrt(sum_o_squares);
+}
+
+vector<double> BackwardEuler::one_step_march(vector<double> &timeinterval, 
+											 vector<double> &Ul)
+{
+	//create some needed vars
+	int numsubintervals = apprbvp->get_numsubintervals();
+	int iteration_counter = 0;
+	int max_iterations = 100;
+	double Toler = 1e-20;
+	double norm =1e10;
+	tridiagonal_matrix *Gp, *A;
+	vector<double> R(numsubintervals + 1, 0.0);
+	vector<double>Rp(numsubintervals + 1, 0.0);
+	vector<double>F;
+	double deltaTime = timeinterval[1] - timeinterval[0];
+	A = new tridiagonal_matrix(numsubintervals + 1);
+	// Calculate the tridiagonal matrix coming from diffusion component.
+	A = apprbvp->calcDiffusion();
+	vector<double> U_l = Ul;
+	vector<double> Ur = Ul;
+
+	vector<double> lumpMassMatrix = apprbvp->calcLumpedMass();
+
+	vector<double> lumpMatrixInvers(numsubintervals + 1);
+	
+
+
+	while (iteration_counter <= max_iterations && norm>Toler)
+	{
+		Gp = new tridiagonal_matrix(A);
+		
+
+
+	}
+
 
 	return Ur;
 }
