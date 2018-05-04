@@ -1,6 +1,7 @@
 #include "tridiagonal_matrix.h"
 #include "twopointbvp.h"
 #include "twopointbvpappr.h"
+#include "ParabolicIBVPSolver.h"
 #include <iostream>
 #include <fstream>
 
@@ -16,9 +17,11 @@ double lambda = 2.0;
 
 double theta = 8.5071995707e+00;
 
-//double phi = 0.0;
+int numspace = 5000;
 
-int numsub = 100;
+int numtime = 100;
+
+double endtime = 10.0;
 
 //--------------------------------------------------
 //set the diffusion coeffcient and if present 
@@ -47,15 +50,14 @@ double forcecoeff(vector <double> &par)
 //	return -1.0;
 //}
 
-double leftbdryvalue(vector<double> &par)
+double leftbdryvalue(double &t)
 {
-	double t = par[0];
+	
 	return exp(-t)*cos(1.0) - 1.0;
 }
 
-double rightbdryvalue(vector<double> &par)
+double rightbdryvalue(double &t)
 {
-	double t = par[0];
 	return exp(-t)*cos(1.0) + 1.0;
 }
 
@@ -74,9 +76,9 @@ double trusol(double x, double t)
 
 int main()
 {
-	//------------------------------------------------
+	//---------------------------------------------------------------------
 	//set up the two point bvp
-	//------------------------------------------------
+	//---------------------------------------------------------------------
 	double * dom = new double[2];
 	dom[0] = -1.0;
 	dom[1] = 1.0;
@@ -86,22 +88,80 @@ int main()
 	double gammaa = 0.0;
 	prob->set_left_bdry(true, gammaa, leftbdryvalue);
 
-	double *rbval = new double[2];
-	rbval[0] = 0.0; //this is gamma_l
-	rbval[1] = 0.0;//this is g_l
-	prob->set_right_bdry(true, rbval);
+	double gammab = 0.0;
+
+	prob->set_right_bdry(true, gammab, rightbdryvalue);
 
 	
 	prob->set_forcing_function(forcecoeff);
 
-	prob->set_true_solution(truesol);
-
-
-	//-----------------------------------------------------
+	
+	//---------------------------------------------------------------------
 	//display some info about the two point bvp
-	//-----------------------------------------------------
+	//---------------------------------------------------------------------
 	prob->display_info_TwoPointBVP();
 
+	//---------------------------------------------------------------------
+	//Run the aproximation
+	//---------------------------------------------------------------------
+
+	//Declare the number of spatial subintervals and set up each subinterval
+	int numsubintervals = numspace;
+
+	double * subintervals = new double[numsubintervals];
+
+	for (int i = 0; i < numsubintervals; i++)
+	{
+		subintervals[i] = (dom[1] - dom[0]) / numsubintervals;
+	}
+
+	//Create BVP Approximation and begin setting up spatial semi-discretization
+	TwoPointBVPAppr * apprbvp = new TwoPointBVPAppr(numsubintervals,
+													subintervals, prob);
+
+	vector<double> xcoord = apprbvp->get_xcoord();
+	
+	//begin setting up the time full discretization by partioning time 
+	int numtimesteps = numtime;
+	double finaltime = endtime;
+	double timestep = finaltime / numtimesteps;
+	vector<double> timelevel(numtimesteps + 1);
+	timelevel[0] = 0.0;
+	
+	for (int i = 1; i <= numtimesteps; i++)
+	{
+		timelevel[i] = timelevel[i - 1] + timestep;
+	}
+	//Crete the FinDiff method object
+	ParabolicIBVPSolver *fdmethod;
+
+	//Specify which method is used
+	fdmethod = new BackwardEuler(apprbvp);
+
+	//create the time interval and intial guess
+	vector<double> timeinterval(2);
+	vector<double> Ul(numsubintervals + 1);
+	for (int i = 0; i <= numsubintervals; i++)
+	{
+		Ul[i] = initialcondition(xcoord[i]);
+	}
+	//Create Ur vector(solution at  right time boundary) and iteratively
+	//solve for it at each time interval from t_0 to t_F
+	vector<double> Ur;
+	for (int i = 1; i <= numtimesteps; i++)
+	{
+		timeinterval[0] = timelevel[i - 1];
+		timeinterval[1] = timelevel[i];
+		Ur = fdmethod->one_step_march(timeinterval, Ul);
+		Ul = Ur;
+	}
+
+	//Clean up memory
+	delete apprbvp;
+	delete fdmethod;
+	delete[]subintervals;
+	delete prob;
+	delete[]dom;
 
 
 	return 0;

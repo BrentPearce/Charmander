@@ -3,12 +3,10 @@
 #include <vector>
 #include <iomanip>
 #include <cmath>
-#include "tridiagonal_matrix.h"
-#include "TwoPointBVPAppr.h"
 
 using namespace std;
 
-// Base/parent class for olving Parabolic IBVP
+// Base/parent class for solving Parabolic IBVP
 class ParabolicIBVPSolver {
 
 protected:

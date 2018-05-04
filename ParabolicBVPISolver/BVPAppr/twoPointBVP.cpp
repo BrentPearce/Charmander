@@ -223,7 +223,7 @@ double TwoPointBVP::calcRightBdry(double t)
 
 void TwoPointBVP::AssembleBdrys(double t)
 {
-	double *val;
+	double *val = new double[2];
 	val[0] = gamma_a;
 	val[1] = calcLeftBdry(t);
 	leftBdryValues = val;

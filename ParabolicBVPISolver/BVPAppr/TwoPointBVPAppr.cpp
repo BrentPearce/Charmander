@@ -291,16 +291,7 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 	return FF;
 }
 
-double find_l2_norm(vector<double> const x)
-{
-	int num_entries = x.size();
-	double sum_o_squares = 0;
-	for (int i = 0; i < num_entries; i++)
-	{
-		sum_o_squares = sum_o_squares + x[i] * x[i];
-	}
-	return sqrt(sum_o_squares);
-}
+
 
 vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 {
@@ -383,7 +374,7 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 		delete Gp;
 
 		//find the norm of h to see if iterations continue
-		norm = find_l2_norm(h);
+		//norm = find_l2_norm(h);
 
 		//determine if the condition ||U_n+1 - U_n|| < Tolerance has been met
 		if (norm < TOL)
@@ -473,7 +464,19 @@ return tmat;
 void TwoPointBVPAppr::calcReaction(vector<double> &U,
 	vector<double> &RW, vector<double> &RPW)
 {
-	AssembleReaction(U, RW, RPW);
+	if (theproblem->reaction_is_present())
+	{
+		AssembleReaction(U, RW, RPW);
+	}
+	else
+	{
+		for (int i = 0; i < numsubintervals+1; i++)
+		{
+			RW[i] = 0;
+			RPW[i] = 0;
+		}
+	}
+	
 }
 
 vector<double> TwoPointBVPAppr::calcLumpedMass()
