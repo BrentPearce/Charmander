@@ -374,7 +374,7 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 		delete Gp;
 
 		//find the norm of h to see if iterations continue
-		//norm = find_l2_norm(h);
+		norm = find_l2_norm(h);
 
 		//determine if the condition ||U_n+1 - U_n|| < Tolerance has been met
 		if (norm < TOL)
@@ -548,9 +548,7 @@ vector<double> TwoPointBVPAppr::calcForce(double timelevel)
 			//for the interior points the FF is governed soley by itself
 			par[0] = xcoord[i];
 			FF[i] = theproblem->eval_forcing_function(par)*Deltax[i];
-
 		}
-
 
 		// Right boundary
 		if (theproblem->right_bdry_is_Dirichlet())

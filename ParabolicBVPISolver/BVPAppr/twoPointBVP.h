@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <vector>
 #include <fstream>
-
+#include"nonmember_functions.h"
 using namespace std;
 
 // A C++ class definition for two point BVPs

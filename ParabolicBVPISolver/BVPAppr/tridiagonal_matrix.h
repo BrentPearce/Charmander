@@ -3,6 +3,7 @@
 #include <vector>
 #include <iomanip>
 #include <cmath>
+#include"nonmember_functions.h"
 using namespace std;
 
 class tridiagonal_matrix
