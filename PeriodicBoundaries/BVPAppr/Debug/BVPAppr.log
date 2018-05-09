@@ -1,0 +1,34 @@
+﻿  TwoPointBVPAppr.cpp
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(357): error C2065: 'FF': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(401): error C2065: 'Gp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(401): error C2065: 'A': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(406): error C2065: 'U': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(406): error C2065: 'R': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(406): error C2065: 'Rp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(408): error C2065: 'Gp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(408): error C2227: left of '->add_to_diagonal_entry' must point to class/struct/union/generic type
+  c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(408): note: type is 'unknown-type'
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(408): error C2065: 'Rp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(412): error C2065: 'A': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(412): error C2227: left of '->Mult' must point to class/struct/union/generic type
+  c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(412): note: type is 'unknown-type'
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(412): error C2065: 'U': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(417): error C2065: 'R': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(417): error C2065: 'F': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(422): error C2065: 'Gp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(422): error C2227: left of '->transform' must point to class/struct/union/generic type
+  c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(422): note: type is 'unknown-type'
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(425): error C2065: 'h': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(425): error C2065: 'Gp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(425): error C2227: left of '->solve_linear_system' must point to class/struct/union/generic type
+  c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(425): note: type is 'unknown-type'
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(430): error C2065: 'U': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(430): error C2065: 'h': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(434): error C2065: 'Gp': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(434): error C2541: 'delete': cannot delete objects that are not pointers
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(437): error C2065: 'h': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(465): error C2065: 'A': undeclared identifier
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(465): error C2541: 'delete': cannot delete objects that are not pointers
+c:\cppsource\charmander\periodicboundaries\bvpappr\twopointbvpappr.cpp(467): error C2065: 'U': undeclared identifier
+  testappr.cpp
+  Generating Code...
