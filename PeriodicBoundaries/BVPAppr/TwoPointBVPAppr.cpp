@@ -448,80 +448,238 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 	int iteration_counter = 0;
 	double norm;
 
-
-	if (theproblem->is_left_bdry_periodic()) //if the left bdry is periodic
-		// then use the modified newton's iteration.
+	//---------------------------------------------------------------------
+	//------------------Solution if Left Bdry is Periodic------------------
+	if (theproblem->is_left_bdry_periodic()) 
 	{	
-		
+		tridiagonal_matrix *GStarP, *B;
+		vector<double> R(numsubintervals + 1, 0.0);
+		vector<double>Rp(numsubintervals + 1, 0.0);
+		vector<double>F;
+		B = new tridiagonal_matrix(numsubintervals);
 
-			
-	}
-	else if (theproblem->is_right_bdry_periodic()) // if the right bdry is 
-		//periodic then use the modified newton's iteration.
-	{
+		// Calculate the tridiagonal matrix coming from diffusion component.
+		double A_10 = AssembleDiffusion(B);
 
-	}
-	else
-	{
-	// Solution Method without PBCs 
-	
 
-	for (int iter = 1; iter <= max_num_iter; iter++)
+
+		// Create the forcing function
+		F = AssembleForce();
+		//Create intial guess of Soln vector U
+		vector<double> U(numsubintervals + 1);
+
+		//if there is a seed function present use it to form 
+		//the intial guess for the U solution vector.
+		if (guess_seed_is_present)
 		{
+			vector<double> par(1);
+			U[0] = F[0];
+			for (int i = 1; i < numsubintervals; i++)
+			{
+				par[0] = xcoord[i];
+				U[i] = eval_intial_guess_seed(par);
+			}
+			U[numsubintervals] = F[numsubintervals];
+		}
+
+		//if a seed isn't present set all interior points to the same number.
+		else
+		{
+			U[0] = F[0];
+
+			for (int i = 1; i < numsubintervals; i++)
+			{
+				U[i] = 0.0;
+			}
+
+			U[numsubintervals] = F[numsubintervals];
+		}
+
 		
-		vector<double> G(numsubintervals + 1, 0.0);
+		vector<double> delta(numsubintervals);
+		vector<double> GStar(numsubintervals);
+		vector<double> BU_hat(numsubintervals);
+		
+		// for loop to solve for semilinear Reaction
+		for (int iter = 1; iter <= max_num_iter; iter++)
+		{
+			// Create U_hat for mutl with B
+			vector<double> U_hat(numsubintervals);
+			for (int i = 0; i < numsubintervals; i++)
+			{
+				U_hat[i] = U[i + 1];
+			}
+
+			// Copy B to GStarP
+			GStarP = new tridiagonal_matrix(B);
+
+			// if there is a reaction calculate r(x,u) and pd(r(x,u),u)
+			if (theproblem->reaction_is_present())
+			{
+				AssembleReaction(U, R, Rp);
+				for (int i = 0; i < numsubintervals; i++)
+					GStarP->add_to_diagonal_entry(i, Rp[i+1]);
+			}
+
+			//Multiply the Matrix A and the vector U
+			BU_hat = B->Mult(U_hat);
+
+			//for loop to  create each entry of the vector GStar
+			for (int i = 0; i < numsubintervals; i++)
+			{
+				GStar[i] = -1 * (BU_hat[i] + R[i+1] - F[i]);
+			}
+
+			//Add U_0*P_hat to B(U_hat)
+			GStar[0] = GStar[0] - U[0] * A_10;
+
+			//solve for delta to update U
+			//first transform GStarP
+			GStarP->transform();
+
+			//solve the linear system for delta
+			delta = GStarP->solve_linear_system(GStar);
+
+			//Update U
+			for (int i = 0; i < numsubintervals; i++)
+			{
+				U[i+1] = U[i+1] + delta[i];
+			}
+
+			U[0] = U[numsubintervals];
+
+			//delete the Tridiagonal Matrix Gp associated with the iteration
+			delete GStarP;
+
+			//find the norm of h to see if iterations continue
+			norm = find_l2_norm(delta);
+
+			//determine if the condition ||U_n+1 - U_n|| < Tolerance is met
+			if (norm < TOL)
+			{
+				// if met, break from loop and stop iterations
+				break;
+			}
+
+			// update iteration counter
+			iteration_counter = iter;
+		}
+	}
+
+	//---------------------------------------------------------------------
+	//----------------Solution if Right Bdry is Periodic-------------------
+	else if (theproblem->is_right_bdry_periodic()) 
+	{
+
+	}
+
+	//---------------------------------------------------------------------
+	//-----------------Solution Method without PBCs------------------------
+	else 
+	{
+		tridiagonal_matrix *Gp, *A;
+		vector<double> R(numsubintervals + 1, 0.0);
+		vector<double>Rp(numsubintervals + 1, 0.0);
+		vector<double>F;
+		A = new tridiagonal_matrix(numsubintervals + 1);
+		
+		// Calculate the tridiagonal matrix coming from diffusion component.
+		double zero = AssembleDiffusion(A);
+		
+		// Create the forcing function
+		F = AssembleForce();
+
+		//Create intial guess of Soln vector U
+		vector<double> U(numsubintervals + 1, 0.0);
+		
+		//if there is a seed function present use it to form 
+		//the intial guess for the U solution vector.
+		if (guess_seed_is_present)
+		{
+			vector<double> par(1);
+			vector<double> U(numsubintervals + 1);
+			U[0] = F[0];
+			for (int i = 1; i < numsubintervals; i++)
+			{
+				par[0] = xcoord[i];
+				U[i] = eval_intial_guess_seed(par);
+			}
+			U[numsubintervals] = F[numsubintervals];
+		}
+
+		//if a seed isn't present set all interior points to the same number.
+		else
+		{
+			U[0] = F[0];
+			U[numsubintervals] = F[numsubintervals];
+		}
+
+		vector<double> h(numsubintervals + 1);
+		vector<double> G(numsubintervals + 1);
 		vector<double> AU(numsubintervals + 1);
 
-		// Copy A to Gp
-		Gp = new tridiagonal_matrix(A);
-
-		// if there is a reaction calculate r(x,u) and pd(r(x,u),u)
-		if (theproblem->reaction_is_present())
+		// for loop to solve for semilinear Reaction
+		for (int iter = 1; iter <= max_num_iter; iter++)
 		{
-			AssembleReaction(U, R, Rp);
-			for (int i = 0; i < numsubintervals + 1; i++)
-				Gp->add_to_diagonal_entry(i, Rp[i]);
+			// Copy A to Gp
+			Gp = new tridiagonal_matrix(A);
+
+			// if there is a reaction calculate r(x,u) and pd(r(x,u),u)
+			if (theproblem->reaction_is_present())
+			{
+				AssembleReaction(U, R, Rp);
+				for (int i = 0; i < numsubintervals + 1; i++)
+					Gp->add_to_diagonal_entry(i, Rp[i]);
+			}
+
+			//Multiply the Matrix A and the vector U
+			AU = A->Mult(U); 
+
+			//for loop to  create each entry of the vector G
+			for (int i = 0; i <= numsubintervals; i++)
+			{
+				G[i] =  -1*(AU[i] + R[i] - F[i]);
+			}
+
+			//solve for h to update U
+			//first transform Gp
+			Gp->transform();
+
+			//solve the linear system for h
+			h = Gp->solve_linear_system(G);
+
+			//Update U
+			for (int i = 0; i <= numsubintervals; i++)
+			{
+				U[i] = U[i] + h[i];
+			}
+
+			//delete the Tridiagonal Matrix Gp associated with the iteration
+			delete Gp;
+
+			//find the norm of h to see if iterations continue
+			norm = find_l2_norm(h);
+
+			//determine if the condition ||U_n+1 - U_n|| < Tolerance is met
+			if (norm < TOL)
+			{
+				// if met, break from loop and stop iterations
+				break;
+			}
+
+			// update iteration counter
+			iteration_counter = iter;
 		}
 
-		//Multiply the Matrix A and the vector U
-		AU = A->Mult(U); 
+		// Clean up and finish
+		delete A;
 
-		//for loop to  create each entry of the vector G
-		for (int i = 0; i <= numsubintervals; i++)
-		{
-			G[i] =  -1*(AU[i] + R[i] - F[i]);
-		}
-
-		//solve for h to update U
-		//first transform Gp
-		Gp->transform();
-
-		//solve the linear system for h
-		h = Gp->solve_linear_system(G);
-
-		//Update U
-		for (int i = 0; i <= numsubintervals; i++)
-		{
-			U[i] = U[i] + h[i];
-		}
-
-		//delete the Tridiagonal Matrix Gp associated with the iteration
-		delete Gp;
-
-		//find the norm of h to see if iterations continue
-		norm = find_l2_norm(h);
-
-		//determine if the condition ||U_n+1 - U_n|| < Tolerance has been met
-		if (norm < TOL)
-		{
-			// if met, break from loop and stop iterations
-			break;
-		}
-
-		// update iteration counter
-		iteration_counter = iter;
+		return U;
 	}
-	}
+	//---------------------------------------------------------------------
+	//-----------------------End of Non-PBC solve--------------------------
+	
+	//Output information about the number of iterations
 	if (iteration_counter == max_num_iter)
 	{
 		std::ofstream ofs;
@@ -537,9 +695,7 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 		ofs.close();
 	}
 
-	delete A;
 
-	return U;
 }
 
 
