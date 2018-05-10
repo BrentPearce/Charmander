@@ -73,7 +73,6 @@ double TwoPointBVPAppr::AssembleDiffusion(tridiagonal_matrix *tmat)
 		kappa[i] = theproblem->eval_diffusion(par);
 	}
 
-
 	for (int i = 0; i < numsubintervals; i++)
 	{
 		kappa[i] = kappa[i] / steplenghts[i];
@@ -85,8 +84,8 @@ double TwoPointBVPAppr::AssembleDiffusion(tridiagonal_matrix *tmat)
 	{
 		// the first row of the matrix is ommited 
 		//the oneth row becomes the zeroth row 
-		tmat->set_diagonal_entry(0, kappa[1] + kappa[2]);
-		tmat->set_upper_diagonal_entry(0,  - kappa[0]);
+		tmat->set_diagonal_entry(0, kappa[1] + kappa[0]);
+		tmat->set_upper_diagonal_entry(0,  - kappa[1]);
 
 		//fill all the interior rows of the matrix
 		for (int i = 1; i < numsubintervals - 1; i++)//Indices May need 
@@ -170,8 +169,10 @@ double TwoPointBVPAppr::AssembleDiffusion(tridiagonal_matrix *tmat)
 			// it is either nuemen or robin (if nueman then gamma_n = 0)
 			double *RBV;
 			RBV = theproblem->get_right_bdry_values();
-			tmat->set_diagonal_entry(numsubintervals, kappa[numsubintervals - 1] - RBV[0]);
-			tmat->set_lower_diagonal_entry(numsubintervals - 1, -kappa[numsubintervals - 1]);
+			tmat->set_diagonal_entry(numsubintervals,
+									kappa[numsubintervals - 1] - RBV[0]);
+			tmat->set_lower_diagonal_entry(numsubintervals - 1,
+											-kappa[numsubintervals - 1]);
 		}
 		return 0.0;
 	}
@@ -250,8 +251,8 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 			
 			//zeroth row not neeeded;
 			
-			// fill entries 1-N-1
-			for (int i = 0; i < numsubintervals - 1; i++)
+			// fill entries 1 to N-1
+			for (int i = 0; i < numsubintervals-1; i++)
 			{
 				//for the interior points the FF is governed soley by itself
 				par[0] = xcoord[i+1];
@@ -270,7 +271,7 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 		
 		else if (theproblem->is_right_bdry_periodic())
 		{
-			vector<double> FF(numsubintervals);
+			vector<double> FF(numsubintervals+1);
 
 			//fill the zeroth row
 			//it must be Nueman or robin so the rhs[0] is FF-g_0
@@ -349,7 +350,7 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 	{
 		if (theproblem->is_left_bdry_periodic())
 		{
-			vector<double> FF(numsubintervals);
+			vector<double> FF(numsubintervals+1);
 
 			//zeroth entry not needed 
 
@@ -459,9 +460,10 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 		B = new tridiagonal_matrix(numsubintervals);
 
 		// Calculate the tridiagonal matrix coming from diffusion component.
+		// (AssembleDiffusion(B) creates the tridiagonal diffusion matrix B
+		//(associated with the condensed system) and  returns the entry 
+		// A_1,0(not a part of the matrix B, but part of the original system A).
 		double A_10 = AssembleDiffusion(B);
-
-
 
 		// Create the forcing function
 		F = AssembleForce();
@@ -492,10 +494,14 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 				U[i] = 0.0;
 			}
 
-			U[numsubintervals] = F[numsubintervals];
+			U[numsubintervals] = F[numsubintervals-1];
 		}
 
-		
+		//Set U_0 = U_N(they have to be because of the PBC)
+		U[0] = U[numsubintervals];
+
+		//create the updating vector delta, and some vectors needed for the 
+		//newton's iteration on the condensed system.
 		vector<double> delta(numsubintervals);
 		vector<double> GStar(numsubintervals);
 		vector<double> BU_hat(numsubintervals);
@@ -520,7 +526,7 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 				for (int i = 0; i < numsubintervals; i++)
 					GStarP->add_to_diagonal_entry(i, Rp[i+1]);
 			}
-
+	
 			//Multiply the Matrix A and the vector U
 			BU_hat = B->Mult(U_hat);
 
@@ -564,13 +570,175 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 			// update iteration counter
 			iteration_counter = iter;
 		}
+
+		//Output information about the number of iterations
+		if (iteration_counter == max_num_iter)
+		{
+			std::ofstream ofs;
+			ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
+			ofs << " Convergence not reached within max number of iterations:  " 
+				<< max_num_iter << endl;
+			ofs.close();
+		}
+		else
+		{
+			std::ofstream ofs;
+			ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
+			ofs << " Convergence was reached at iterations = " 
+				<< iteration_counter << endl;
+			ofs.close();
+		}
+
+		// Clean up and finish
+		delete B;
+
+		return U;
 	}
 
 	//---------------------------------------------------------------------
 	//----------------Solution if Right Bdry is Periodic-------------------
 	else if (theproblem->is_right_bdry_periodic()) 
 	{
+		tridiagonal_matrix *GStarP, *B;
+		vector<double> R(numsubintervals + 1, 0.0);
+		vector<double>Rp(numsubintervals + 1, 0.0);
+		vector<double>F;
+		B = new tridiagonal_matrix(numsubintervals);
 
+		// Calculate the tridiagonal matrix coming from diffusion component.
+		// (AssembleDiffusion(B) creates the tridiagonal diffusion matrix B
+		//(associated with the condensed system) and  returns the entry 
+		// A_N-1,N(not a part of the matrix B, but part of origal system A).
+		double A_NM1_N = AssembleDiffusion(B);
+
+		// Create the forcing function
+		F = AssembleForce();
+		//Create intial guess of Soln vector U
+		vector<double> U(numsubintervals + 1);
+
+		//if there is a seed function present use it to form 
+		//the intial guess for the U solution vector.
+		if (guess_seed_is_present)
+		{
+			vector<double> par(1);
+			U[0] = F[0];
+			for (int i = 1; i < numsubintervals; i++)
+			{
+				par[0] = xcoord[i];
+				U[i] = eval_intial_guess_seed(par);
+			}
+			U[numsubintervals] = F[numsubintervals];
+		}
+
+		//if a seed isn't present set all interior points to the same number.
+		else
+		{
+			U[0] = F[0];
+
+			for (int i = 1; i < numsubintervals; i++)
+			{
+				U[i] = 0.0;
+			}
+
+			U[numsubintervals] = F[numsubintervals];
+		}
+
+		//Set U_0 = U_N(they have to be because of the PBC)
+		U[numsubintervals] = U[0];
+
+		//create the updating vector delta, and some vectors needed for the 
+		//newton's iteration on the condensed system.
+		vector<double> delta(numsubintervals);
+		vector<double> GStar(numsubintervals);
+		vector<double> BU_hat(numsubintervals);
+
+		// for loop to solve for semilinear Reaction
+		for (int iter = 1; iter <= max_num_iter; iter++)
+		{
+			// Create U_hat for mutl with B
+			vector<double> U_hat(numsubintervals);
+			for (int i = 0; i < numsubintervals; i++)
+			{
+				U_hat[i] = U[i];
+			}
+
+			// Copy B to GStarP
+			GStarP = new tridiagonal_matrix(B);
+
+			// if there is a reaction calculate r(x,u) and pd(r(x,u),u)
+			if (theproblem->reaction_is_present())
+			{
+				AssembleReaction(U, R, Rp);
+				for (int i = 0; i < numsubintervals; i++)
+					GStarP->add_to_diagonal_entry(i, Rp[i]);
+			}
+
+			//Multiply the Matrix A and the vector U
+			BU_hat = B->Mult(U_hat);
+
+			//for loop to  create each entry of the vector GStar
+			for (int i = 0; i < numsubintervals; i++)
+			{
+				GStar[i] = -1 * (BU_hat[i] + R[i] - F[i]);
+			}
+
+			//Add U_0*P_hat to B(U_hat)
+			GStar[0] = GStar[0] - U[0] * A_NM1_N;
+
+			//solve for delta to update U
+			//first transform GStarP
+			GStarP->transform();
+
+			//solve the linear system for delta
+			delta = GStarP->solve_linear_system(GStar);
+
+			//Update U
+			for (int i = 0; i < numsubintervals; i++)
+			{
+				U[i] = U[i] + delta[i];
+			}
+
+			U[numsubintervals] = U[0];
+
+			//delete the Tridiagonal Matrix Gp associated with the iteration
+			delete GStarP;
+
+			//find the norm of h to see if iterations continue
+			norm = find_l2_norm(delta);
+
+			//determine if the condition ||U_n+1 - U_n|| < Tolerance is met
+			if (norm < TOL)
+			{
+				// if met, break from loop and stop iterations
+				break;
+			}
+
+			// update iteration counter
+			iteration_counter = iter;
+		}
+
+		//Output information about the number of iterations
+		if (iteration_counter == max_num_iter)
+		{
+			std::ofstream ofs;
+			ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
+			ofs << " Convergence not reached within max number of iterations:  "
+				<< max_num_iter << endl;
+			ofs.close();
+		}
+		else
+		{
+			std::ofstream ofs;
+			ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
+			ofs << " Convergence was reached at iterations = "
+				<< iteration_counter << endl;
+			ofs.close();
+		}
+
+		// Clean up and finish
+		delete B;
+
+		return U;
 	}
 
 	//---------------------------------------------------------------------
@@ -584,6 +752,9 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 		A = new tridiagonal_matrix(numsubintervals + 1);
 		
 		// Calculate the tridiagonal matrix coming from diffusion component.
+		//AssembleDiffusion fills the matrix A with the diffusion coeficients
+		// coming from the system and stores zero in the var 'zero', this is 
+		// a side efect of implementig the periodic boundary condidtions.
 		double zero = AssembleDiffusion(A);
 		
 		// Create the forcing function
@@ -614,6 +785,8 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 			U[numsubintervals] = F[numsubintervals];
 		}
 
+		//create h updater vector and some needed vectors for the newton's
+		//iteration of the semilinear system.
 		vector<double> h(numsubintervals + 1);
 		vector<double> G(numsubintervals + 1);
 		vector<double> AU(numsubintervals + 1);
@@ -671,7 +844,25 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 			iteration_counter = iter;
 		}
 
-		// Clean up and finish
+		//Output information about the number of iterations
+		if (iteration_counter == max_num_iter)
+		{
+			std::ofstream ofs;
+			ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
+			ofs << " Convergence not reached within max number of iterations:  " 
+				<< max_num_iter << endl;
+			ofs.close();
+		}
+		else
+		{
+			std::ofstream ofs;
+			ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
+			ofs << " Convergence was reached at iterations = " 
+				<< iteration_counter << endl;
+			ofs.close();
+		}
+
+		// Clean up a little
 		delete A;
 
 		return U;
@@ -679,25 +870,7 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 	//---------------------------------------------------------------------
 	//-----------------------End of Non-PBC solve--------------------------
 	
-	//Output information about the number of iterations
-	if (iteration_counter == max_num_iter)
-	{
-		std::ofstream ofs;
-		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence not reached within max number of iterations:  " << max_num_iter << endl;
-		ofs.close();
-	}
-	else
-	{
-		std::ofstream ofs;
-		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence was reached at iterations = " << iteration_counter << endl;
-		ofs.close();
-	}
-
-
 }
-
 
 
 double TwoPointBVPAppr::find_max_error(int max_iters, double TOL)

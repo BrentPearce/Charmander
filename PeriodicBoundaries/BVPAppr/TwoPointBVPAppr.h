@@ -47,10 +47,7 @@ public:
 
 	tridiagonal_matrix * calcDiffusion();
 
-
-
 	vector<double> calcLumpedMass();
-
 
 	~TwoPointBVPAppr();
 };

@@ -10,18 +10,10 @@
 
 double pi = acos(-1.0);
 
-double lambda = 2.0;
+int numsub = 100;
 
-//double theta = 2.3575510539e+00;
-
-double theta = 8.5071995707e+00;
-
-//double phi = 0.0;
-
-int numsub = 8;
-
-int const maxIters = 1000;
-double const Toler = 1.0e-13;
+int const maxIters = 15;
+double const Toler = 1.0e-9;
 
 //--------------------------------------------------
 //set the diffusion coeffcient and if present 
@@ -30,29 +22,30 @@ double const Toler = 1.0e-13;
 
 double diffusioncoeff(vector<double> &x)
 {
-	return 1.0;
+	return 1.0/(1.0+x[0]*x[0]);
 }
 
 double forcecoeff(vector <double> &x)
 {
-	return 0;
+	return 1.0;
 }
 
 double reactioncoeff(vector<double> &par)
 {
-	return -1.0*lambda*exp(par[1]);
+	return 0.0;
 }
 
 double dudr(vector<double> &par)
 {
-	return -1.0*lambda*exp(par[1]);
+	return 0.0;
 }
 
 double truesol(vector<double> & x)
 {
-	double numer = cosh(theta*0.5*(x[0] - 0.5));
-	double denom = cosh(0.25*theta);
-	return -2*log( numer/ denom );
+	double c1 = -9.0/16.0;
+	double c2 = -9.0 / 80.0;
+	return -1*( x[0] * x[0] * x[0] * x[0] / 4.0 + c1 * x[0] * x[0] * x[0] / 3 +
+		x[0] * x[0] / 2 + c1 * x[0]) + c2;
 }
 
 //double seed(vector<double> & par)
@@ -71,15 +64,12 @@ int main()
 
 	TwoPointBVP *prob = new TwoPointBVP(dom, diffusioncoeff);
 
-	double *lbval = new double[2];
-	lbval[0] = 0.0; //this is gamma_0
-	lbval[1] = 0.0; // this is g_0
-	prob->set_left_bdry(true , lbval);
+	prob->set_left_periodic_bdry();
 
 	double *rbval = new double[2];
-	rbval[0] = 0.0; //this is gamma_l
-	rbval[1] = 0.0;//this is g_l
-	prob->set_right_bdry(true, rbval);
+	rbval[0] = -5.0; //this is gamma_l
+	rbval[1] = 1.0;//this is g_l
+	prob->set_right_bdry(false, rbval);
 
 	prob->set_reaction(reactioncoeff,dudr);
 
@@ -133,7 +123,8 @@ int main()
 			x[0] = dom[0];
 			for (int i = 0; i < nres + 1; i++)
 			{
-				fileout << x[0] << "\t" << prob->eval_true_solution(x) << " " << endl;
+				fileout << x[0] << "\t" << prob->eval_true_solution(x) 
+						<< " " << endl;
 				x[0] += s;
 			}
 			fileout.close();
@@ -154,83 +145,82 @@ int main()
 	//-----------------------------------------
 	{
 
+		{
+			//create vectors to store hs and e(x_j)s and ln
+			vector<double> h(10);
+			vector<double> ln_h(10);
+			vector<double> ex_j(10);
+			vector<double> ln_ex_j(10);
 
-		//{
-		//	//create vectors to store hs and e(x_j)s and ln
-		//	vector<double> h(10);
-		//	vector<double> ln_h(10);
-		//	vector<double> ex_j(10);
-		//	vector<double> ln_ex_j(10);
+			// for loop to run with diffrent size hs
 
-		//	// for loop to run with diffrent size hs
+			//counter to help update h & ex_j
+			vector<double> doubles(10);
+			//named doubles because each entry is a double of the previous
+			//and this vector is used to double the numsubintervals each iteration
 
-		//	//counter to help update h & ex_j
-		//	vector<double> doubles(10);
-		//	//named doubles because each entry is a double of the previous
-		//	//and this vector is used to double the numsubintervals each iteration
+			for (int i = 0; i < 10; i++)
+			{
+				doubles[i] = pow(2.0, (i + 1));
+			}
 
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		doubles[i] = pow(2.0, (i + 1));
-		//	}
+			//for loop to run the appx over and over w/ diff h.
+			for (int j = 0; j < 10; j++)
+			{
 
-		//	//for loop to run the appx over and over w/ diff h.
-		//	for (int j = 0; j < 10; j++)
-		//	{
+				// create the 2 pt bvp approximation
+				double numsubintervals = doubles[j];
+				double * subintervals = new double[numsubintervals];
+				for (int i = 0; i < numsubintervals; i++)
+				{
+					subintervals[i] = (dom[1] - dom[0]) / numsubintervals;
+				}
+				//create subintervals size vector
+				h[j] = (dom[1] - dom[0]) / numsubintervals;
 
-		//		// create the 2 pt bvp approximation
-		//		double numsubintervals = doubles[j];
-		//		double * subintervals = new double[numsubintervals];
-		//		for (int i = 0; i < numsubintervals; i++)
-		//		{
-		//			subintervals[i] = (dom[1] - dom[0]) / numsubintervals;
-		//		}
-		//		//create subintervals size vector
-		//		h[j] = (dom[1] - dom[0]) / numsubintervals;
+				// create the approximation for the new stepinterval size
+				TwoPointBVPAppr *method = new TwoPointBVPAppr(numsubintervals,
+					subintervals, prob);
 
-		//		// create the approximation for the new stepinterval size
-		//		TwoPointBVPAppr *method = new TwoPointBVPAppr(numsubintervals,
-		//			subintervals, prob);
+				//method->set_intial_guess_seed(seed);
 
-		//		//method->set_intial_guess_seed(seed);
+				//solve and   find the maximum error: e(x_j) 
+				//for the new step size h
+				ex_j[j] = method->find_max_error(maxIters, Toler);
+			}
 
-		//		//solve and   find the maximum error: e(x_j) 
-		//		//for the new step size h
-		//		ex_j[j] = method->find_max_error(maxIters, Toler);
-		//	}
+			//find the natural log of the subinterval lengths and errors
+			//for plotting
 
-		//	//find the natural log of the subinterval lengths and errors
-		//	//for plotting
+			for (int i = 0; i < 10; i++)
+			{
+				ln_h[i] = log(h[i]);
+				ln_ex_j[i] = log(ex_j[i]);
+			}
 
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		ln_h[i] = log(h[i]);
-		//		ln_ex_j[i] = log(ex_j[i]);
-		//	}
+			// output the subinterval lenght vs error to a file
+			ofstream fileout;
+			fileout.open("subintervallenghtvserror.txt");
+			for (int i = 0; i < 10; i++)
+			{
+				fileout << h[i] << "\t" << ex_j[i] << " " << endl;
+			}
+			fileout.close();
 
-		//	// output the subinterval lenght vs error to a file
-		//	ofstream fileout;
-		//	fileout.open("subintervallenghtvserror.txt");
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		fileout << h[i] << "\t" << ex_j[i] << " " << endl;
-		//	}
-		//	fileout.close();
+			// output the ln of subinterval lenght and ln of errors to a file
+			fileout.open("ln_subintervallenghtvsln_error.txt");
+			for (int i = 0; i < 10; i++)
+			{
+				fileout << ln_h[i] << "\t" << ln_ex_j[i] << " " << endl;
+			}
+			fileout.close();
 
-		//	// output the ln of subinterval lenght and ln of errors to a file
-		//	fileout.open("ln_subintervallenghtvsln_error.txt");
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		fileout << ln_h[i] << "\t" << ln_ex_j[i] << " " << endl;
-		//	}
-		//	fileout.close();
-
-		//	//delete vars associated with the problem
-		//	delete[]rbval;
-		//	delete[]lbval;
-		//	delete prob;
-		//	delete[]dom;
-		//}
+			//delete vars associated with the problem
+			delete[]rbval;
+			//delete[]lbval;
+			delete prob;
+			delete[]dom;
+		}
 
 	}
 	//------------------------------------------------------

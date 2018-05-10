@@ -107,5 +107,3 @@ public:
 	// TwoPointBVP Destructor
 	~TwoPointBVP();
 };
-
-

@@ -155,11 +155,11 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 					<< leftBdryValues[0] << " and g_0: " <<
 					leftBdryValues[1] << endl;
 			}
-			fileout << "Right Boundary is Periodic" << endl;
+			fileout << " Right Boundary is Periodic" << endl;
 		}
 		else //the left must be a PBC
 		{
-			fileout << "Left Boundary is Periodic" << endl;
+			fileout << " Left Boundary is Periodic" << endl;
 
 			//find out if Right BC is nuemann or robin and display which
 			if (rightBdryValues[0] == 0)
@@ -173,7 +173,6 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 					<< rightBdryValues[0] << " and g_L: "
 					<< rightBdryValues[1] << endl;
 			}
-
 
 		}
 
@@ -238,8 +237,6 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 	fileout.close();
 	return;
 }
-
-
 
 vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, 
 														double domRight)
