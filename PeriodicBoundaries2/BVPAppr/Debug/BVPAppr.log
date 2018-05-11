@@ -1,0 +1,6 @@
+﻿  TwoPointBVPAppr.cpp
+  testappr.cpp
+c:\cppsource\charmander\periodicboundaries2\bvpappr\testappr.cpp(183): warning C4244: 'initializing': conversion from 'double' to 'unsigned int', possible loss of data
+c:\cppsource\charmander\periodicboundaries2\bvpappr\testappr.cpp(192): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+  Generating Code...
+  BVPAppr.vcxproj -> C:\cppSource\Charmander\PeriodicBoundaries2\Debug\BVPAppr.exe

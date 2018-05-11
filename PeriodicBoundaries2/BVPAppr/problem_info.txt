@@ -1,0 +1,19 @@
+************************************************************************ 
+ Some info regarding the two point BVP problem andapproximation: 
+ Domain is:(0,1)
+ Left Boundary is Robin with gamma_0: -5 and g_0: 1
+ Right Boundary is Periodic
+ Reaction is Present. 
+ Forcing Function is Present. 
+************************************************************************
+ Convergence was reached at iterations = 13
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 12
+ Convergence was reached at iterations = 13
+ Convergence was reached at iterations = 13
