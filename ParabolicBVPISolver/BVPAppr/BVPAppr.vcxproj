@@ -115,11 +115,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="nonmember_functions.h" />
+    <ClInclude Include="ParabolicIBVPSolver.h" />
     <ClInclude Include="tridiagonal_matrix.h" />
     <ClInclude Include="twoPointBVP.h" />
     <ClInclude Include="TwoPointBVPAppr.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ParabolicIBVPSolver.cpp" />
+    <ClCompile Include="nonmember_functions.cpp" />
     <ClCompile Include="testappr.cpp" />
     <ClCompile Include="tridiagonal_matrix.cpp" />
     <ClCompile Include="twoPointBVP.cpp" />

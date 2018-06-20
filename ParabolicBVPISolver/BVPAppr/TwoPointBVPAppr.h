@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <vector>
 
-
 using namespace std;
 
 class TwoPointBVPAppr
@@ -31,7 +30,8 @@ protected:
 
 public:
 
-	TwoPointBVPAppr(int N, const double *subintervallengths, const TwoPointBVP *prob);
+	TwoPointBVPAppr(int N, const double *subintervallengths, 
+					const TwoPointBVP *prob);
 
 	vector<double> get_xcoord();
 
@@ -45,11 +45,16 @@ public:
 
 	double find_max_error(int max_iters, double TOL);
 
+	
+
 	tridiagonal_matrix * calcDiffusion();
 
-
+	void calcReaction(vector<double> &, 
+			vector<double> &, vector<double> &);
 
 	vector<double> calcLumpedMass();
+
+	vector<double> calcForce(double timelevel);
 
 
 	~TwoPointBVPAppr();

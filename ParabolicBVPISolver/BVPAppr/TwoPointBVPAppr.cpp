@@ -3,15 +3,18 @@
 #include "TwoPointBVPAppr.h"
 
 
-TwoPointBVPAppr::TwoPointBVPAppr(int N, const double * subintervallengths, const TwoPointBVP * prob)
+TwoPointBVPAppr::TwoPointBVPAppr(int N, const double * subintervallengths, 
+								const TwoPointBVP * prob)
 {
 	numsubintervals = N;
 	steplenghts = subintervallengths;
 	theproblem = prob;
 
-	// if either reaction or external force is present, then we need Delta x_i
-	if (theproblem->reaction_is_present() || theproblem->forcing_fucntion_is_present())
-	{
+	// if either reaction or external force is present,
+	//then we need Delta x_i
+
+	if (theproblem->reaction_is_present()
+		|| theproblem->forcing_fucntion_is_present()){
 		Deltax.resize(numsubintervals + 1);
 		Deltax[0] = 0.5 * steplenghts[0];
 		for (int i = 1; i < numsubintervals; i++)
@@ -50,7 +53,8 @@ int TwoPointBVPAppr::get_numsubintervals()
 	return	numsubintervals;
 }
 
-void TwoPointBVPAppr::set_intial_guess_seed(double(*guessSeed)(vector<double> &))
+void TwoPointBVPAppr::set_intial_guess_seed
+		(double(*guessSeed)(vector<double> &))
 {
 	intialGuessSeed = guessSeed;
 	guess_seed_is_present = true;
@@ -119,8 +123,12 @@ void TwoPointBVPAppr::AssembleDiffusion(tridiagonal_matrix *tmat)
 		// it is either nuemen or robin (if nueman then gamma_n = 0)
 		double *RBV;
 		RBV = theproblem->get_right_bdry_values();
-		tmat->set_diagonal_entry(numsubintervals, kappa[numsubintervals-1] - RBV[0]);
-		tmat->set_lower_diagonal_entry(numsubintervals - 1, -kappa[numsubintervals-1]);
+
+		tmat->set_diagonal_entry(numsubintervals, 
+								 kappa[numsubintervals-1]- RBV[0]);
+
+		tmat->set_lower_diagonal_entry(numsubintervals - 1, 
+									   -kappa[numsubintervals-1]);
 	}
 }
 
@@ -128,7 +136,8 @@ void TwoPointBVPAppr::AssembleReaction(vector<double> &U,
 		vector<double> &RW, vector<double> &RPW )
 {
 
-	//U is our Solution, RW is the new reaction force and RPW is the partial derivative of RW
+	//U is our Solution, RW is the new reaction force and 
+	//RPW is the partial derivative of RW
 
 	vector <double> par(2);
 	vector <double> val(2);
@@ -188,9 +197,8 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 	
 	vector <double> par(1);
 	
-	//if there is a forcing function
-	// set all terms equal to forcing function
-	// or boundary conditions or both
+	//if there is a forcing function set all terms equal to the forcing 
+	//function and boundary conditions.
 	if (theproblem ->forcing_fucntion_is_present())
 	{
 		// Left boundary
@@ -206,7 +214,8 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 			// ff-g_0
 			double *LBC = theproblem->get_left_bdry_values();
 			par[0] = xcoord[0];
-			FF[0] = theproblem->eval_forcing_function(par)*Deltax[0] - LBC[1];
+			FF[0] = theproblem->eval_forcing_function(par)*Deltax[0] 
+															- LBC[1];
 		}
 
 		//interior points
@@ -231,7 +240,10 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 			//if it is Nueman or Robin then the rhs is FF-g_L
 			double *RBC = theproblem->get_right_bdry_values();
 			par[0] = xcoord[numsubintervals];
-			FF[numsubintervals] = theproblem->eval_forcing_function(par)*Deltax[numsubintervals] - RBC[1];
+			
+			FF[numsubintervals] =
+			theproblem->eval_forcing_function(par)*Deltax[numsubintervals] 
+			- RBC[1];
 		}
 	}
 
@@ -279,16 +291,6 @@ vector<double> TwoPointBVPAppr::AssembleForce()
 	return FF;
 }
 
-double find_l2_norm(vector<double> const x)
-{
-	int num_entries = x.size();
-	double sum_o_squares = 0;
-	for (int i = 0; i < num_entries ; i++)
-	{
-		sum_o_squares = sum_o_squares + x[i] * x[i];
-	}
-	 return sqrt(sum_o_squares);
-}
 
 
 vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
@@ -328,13 +330,9 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 		U[numsubintervals] = F[numsubintervals];
 	}
 	
-	
-	
 	vector<double> h(numsubintervals + 1, 0.0);
 	vector<double> G(numsubintervals + 1, 0.0);
 	vector<double> AU(numsubintervals + 1);
-
-	
 
 	// The iteration
 	for (int iter = 1; iter <= max_num_iter; iter++)
@@ -393,14 +391,20 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 	{
 		std::ofstream ofs;
 		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence not reached within max number of iterations:  " << max_num_iter << endl;
+
+		ofs << " Convergence not reached within max number of iterations:  "
+			<< max_num_iter << endl;
+
 		ofs.close();
 	}
 	else
 	{
 		std::ofstream ofs;
 		ofs.open("problem_info.txt", std::ofstream::out | std::ofstream::app);
-		ofs << " Convergence was reached at iterations = " << iteration_counter << endl;
+
+		ofs << " Convergence was reached at iterations = " 
+			<< iteration_counter << endl;
+		
 		ofs.close();
 	}
 
@@ -408,8 +412,6 @@ vector<double> TwoPointBVPAppr::Solve(int max_num_iter, double TOL)
 
 	return U;
 }
-
-
 
 double TwoPointBVPAppr::find_max_error(int max_iters, double TOL)
 {
@@ -459,12 +461,156 @@ AssembleDiffusion(tmat);
 return tmat;
 }
 
-
+void TwoPointBVPAppr::calcReaction(vector<double> &U,
+	vector<double> &RW, vector<double> &RPW)
+{
+	if (theproblem->reaction_is_present())
+	{
+		AssembleReaction(U, RW, RPW);
+	}
+	else
+	{
+		for (int i = 0; i < numsubintervals+1; i++)
+		{
+			RW[i] = 0;
+			RPW[i] = 0;
+		}
+	}
+	
+}
 
 vector<double> TwoPointBVPAppr::calcLumpedMass()
 {
+	vector<double> lumpedMass(numsubintervals + 1);
+	if (theproblem->left_bdry_is_Dirichlet())
+	{
+		lumpedMass[0] = 0;
+	}
+	else
+	{
+		lumpedMass[0] = steplenghts[0] / 2.0;
+	}
 
-	return vector<double>();
+	for (int i = 1; i < numsubintervals; i++)
+	{
+		lumpedMass[i] = (steplenghts[i - 1] + steplenghts[i]) / 2.0;
+	}
+
+	if (theproblem->right_bdry_is_Dirichlet())
+	{
+		lumpedMass[numsubintervals] = 0;
+	}
+	else
+	{
+		lumpedMass[numsubintervals] = steplenghts[numsubintervals] / 2.0;
+	}
+
+	return lumpedMass;
+}
+
+vector<double> TwoPointBVPAppr::calcForce(double timelevel) 
+{
+	// This vector contains the force algebraic terms
+	vector<double> FF(numsubintervals + 1);
+
+	//Create a paramateter vector to store the current time and the varying
+	// xcoord to use inside eval_forcing_function(par)
+	vector <double> par(2);
+
+	//set the current time as the second element of the vector par(this
+	//minmizes changes needed).
+	par[1] = timelevel;
+
+	//if there is a forcing function set all terms equal to the forcing 
+	//function and boundary conditions.
+	if (theproblem->forcing_fucntion_is_present())
+	{
+		// Left boundary
+		if (theproblem->left_bdry_is_Dirichlet())
+		{
+			// when it is dirichlet the rhs[0] is simply g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			FF[0] = LBC[1];
+		}
+		else
+		{
+			//if it is Nueman or robin then the rhs[0] is
+			// ff-g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			par[0] = xcoord[0];
+			FF[0] = theproblem->eval_forcing_function(par)*Deltax[0]
+				- LBC[1];
+		}
+
+		//interior points
+		for (int i = 1; i < numsubintervals; i++)
+		{
+			//for the interior points the FF is governed soley by itself
+			par[0] = xcoord[i];
+			FF[i] = theproblem->eval_forcing_function(par)*Deltax[i];
+		}
+
+		// Right boundary
+		if (theproblem->right_bdry_is_Dirichlet())
+		{
+			//if it is Dirichlet then the rhs is g_L 
+			double *RBC = theproblem->get_right_bdry_values();
+			FF[numsubintervals] = RBC[1];
+		}
+		else
+		{
+			//if it is Nueman or Robin then the rhs is FF-g_L
+			double *RBC = theproblem->get_right_bdry_values();
+			par[0] = xcoord[numsubintervals];
+
+			FF[numsubintervals] =
+				theproblem->eval_forcing_function(par)*Deltax[numsubintervals]
+				- RBC[1];
+		}
+	}
+
+	//if there isnt a ForcingFunct then set FF all
+	//equal to zero except when otherwise dictated by BCs.
+	else
+	{
+		// Left boundary
+		if (theproblem->left_bdry_is_Dirichlet())
+		{
+			// when it is dirichlet the rhs[0] is simply g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			FF[0] = LBC[1];
+		}
+		else
+		{
+			//if it is Nueman or robin then the rhs[0] is
+			// ff-g_0
+			double *LBC = theproblem->get_left_bdry_values();
+			FF[0] = -LBC[1];
+		}
+
+		//interior points
+		for (int i = 1; i < numsubintervals; i++)
+		{
+			//for the interior FF = 0
+			FF[i] = 0;
+		}
+
+		// Right boundary
+		if (theproblem->right_bdry_is_Dirichlet())
+		{
+			//if it is Dirichlet then the rhs[N] is g_L 
+			double *RBC = theproblem->get_right_bdry_values();
+			FF[numsubintervals] = RBC[1];
+		}
+		else
+		{
+			//if it is Nueman or Robin then the rhs is -g_L
+			double *RBC = theproblem->get_right_bdry_values();
+			FF[numsubintervals] = -RBC[1];
+		}
+	}
+
+	return FF;
 }
 
 TwoPointBVPAppr::~TwoPointBVPAppr()

@@ -1,6 +1,7 @@
 #include "tridiagonal_matrix.h"
 #include "twopointbvp.h"
 #include "twopointbvpappr.h"
+#include "ParabolicIBVPSolver.h"
 #include <iostream>
 #include <fstream>
 
@@ -16,12 +17,11 @@ double lambda = 2.0;
 
 double theta = 8.5071995707e+00;
 
-//double phi = 0.0;
+int numspace = 5000;
 
-int numsub = 8;
+int numtime = 100;
 
-int const maxIters = 1000;
-double const Toler = 1.0e-13;
+double endtime = 10.0;
 
 //--------------------------------------------------
 //set the diffusion coeffcient and if present 
@@ -33,209 +33,136 @@ double diffusioncoeff(vector<double> &x)
 	return 1.0;
 }
 
-double forcecoeff(vector <double> &x)
+double forcecoeff(vector <double> &par)
 {
-	return 0;
+	double x = par[0];
+	double t = par[1];
+	return exp(-t)*(0.5 *(1.0 - t)*(1.0 - x * x) + t);
 }
 
-double reactioncoeff(vector<double> &par)
-{
-	return -1.0*lambda*exp(par[1]);
-}
-
-double dudr(vector<double> &par)
-{
-	return -1.0*lambda*exp(par[1]);
-}
-
-double truesol(vector<double> & x)
-{
-	double numer = cosh(theta*0.5*(x[0] - 0.5));
-	double denom = cosh(0.25*theta);
-	return -2*log( numer/ denom );
-}
-
-//double seed(vector<double> & par)
+//double reactioncoeff(vector<double> &par)
 //{
-//	return 4*phi*(par[0] - 0)*(1 - par[0]);
+//	return 0.0;
 //}
+
+//double dudr(vector<double> &par)
+//{
+//	return -1.0;
+//}
+
+double leftbdryvalue(double &t)
+{
+	
+	return exp(-t)*cos(1.0) - 1.0;
+}
+
+double rightbdryvalue(double &t)
+{
+	return exp(-t)*cos(1.0) + 1.0;
+}
+
+double initialcondition(double x)
+{
+	return x + cos(x);
+}
+
+bool true_sol_is_present = true;
+
+double trusol(double x, double t)
+{
+	return exp(-t)*(cos(x) + 0.5*t*(1.0 - x * x)) + x;
+}
+
 
 int main()
 {
-	//------------------------------------------------
+	//---------------------------------------------------------------------
 	//set up the two point bvp
-	//------------------------------------------------
+	//---------------------------------------------------------------------
 	double * dom = new double[2];
-	dom[0] = 0.0;
+	dom[0] = -1.0;
 	dom[1] = 1.0;
 
 	TwoPointBVP *prob = new TwoPointBVP(dom, diffusioncoeff);
 
-	double *lbval = new double[2];
-	lbval[0] = 0.0; //this is gamma_0
-	lbval[1] = 0.0; // this is g_0
-	prob->set_left_bdry(true , lbval);
+	double gammaa = 0.0;
+	prob->set_left_bdry(true, gammaa, leftbdryvalue);
 
-	double *rbval = new double[2];
-	rbval[0] = 0.0; //this is gamma_l
-	rbval[1] = 0.0;//this is g_l
-	prob->set_right_bdry(true, rbval);
+	double gammab = 0.0;
 
-	prob->set_reaction(reactioncoeff,dudr);
+	prob->set_right_bdry(true, gammab, rightbdryvalue);
 
+	
 	prob->set_forcing_function(forcecoeff);
 
-	prob->set_true_solution(truesol);
-
-
-	//-----------------------------------------------------
+	
+	//---------------------------------------------------------------------
 	//display some info about the two point bvp
-	//-----------------------------------------------------
+	//---------------------------------------------------------------------
 	prob->display_info_TwoPointBVP();
 
+	//---------------------------------------------------------------------
+	//Run the aproximation
+	//---------------------------------------------------------------------
 
-	//-----------------------------------------------------
-	//solve for the approximate solution
-	//(comment out this section if only finding error
-	//higlight then ctrl + k, ctrl + c to comment out
-	// highlight then ctrl+k, ctrl+u to uncomment)
-	//-----------------------------------------------------
-	
+	//Declare the number of spatial subintervals and set up each subinterval
+	int numsubintervals = numspace;
+
+	double * subintervals = new double[numsubintervals];
+
+	for (int i = 0; i < numsubintervals; i++)
 	{
-		// create the 2 pt bvp approximation
-		int numsubintervals = numsub;
-		double * subintervals = new double[numsubintervals];
-		for (int i = 0; i < numsubintervals; i++)
-		{
-			subintervals[i] = (dom[1] - dom[0]) / numsubintervals;
-		}
-
-		TwoPointBVPAppr *method = new TwoPointBVPAppr(numsubintervals,
-			subintervals, prob);
-
-		//method->set_intial_guess_seed(seed);
-
-		vector<double> sol = method->Solve(maxIters,Toler);
-		vector<double> xcoord = method->get_xcoord();
-
-		ofstream fileout;
-		fileout.open("approximatesol.txt");
-		for (int i = 0; i < numsubintervals + 1; i++)
-			fileout << xcoord[i] << "\t" << sol[i] << " " << endl;
-		fileout.close();
-
-		if (prob->true_solution_is_present())
-		{
-			fileout.open("truesol.txt");
-			int nres = 100;
-			double s = (dom[1] - dom[0]) / nres;
-			vector<double> x(1);
-			x[0] = dom[0];
-			for (int i = 0; i < nres + 1; i++)
-			{
-				fileout << x[0] << "\t" << prob->eval_true_solution(x) << " " << endl;
-				x[0] += s;
-			}
-			fileout.close();
-		}
+		subintervals[i] = (dom[1] - dom[0]) / numsubintervals;
 	}
+
+	//Create BVP Approximation and begin setting up spatial semi-discretization
+	TwoPointBVPAppr * apprbvp = new TwoPointBVPAppr(numsubintervals,
+													subintervals, prob);
+
+	vector<double> xcoord = apprbvp->get_xcoord();
 	
-	//----------------------------------------
-	//end of section that finds the approx solution
-	//----------------------------------------
-
-
-
-	//-----------------------------------------
-	//find error between true and approximate soln
-	//(comment out if only finding approx soln
-	// higlight then ctrl+k, ctrl+c to comment out
-	// highlight then ctrl+k, ctrl+u to uncomment)
-	//-----------------------------------------
+	//begin setting up the time full discretization by partioning time 
+	int numtimesteps = numtime;
+	double finaltime = endtime;
+	double timestep = finaltime / numtimesteps;
+	vector<double> timelevel(numtimesteps + 1);
+	timelevel[0] = 0.0;
+	
+	for (int i = 1; i <= numtimesteps; i++)
 	{
-
-
-		//{
-		//	//create vectors to store hs and e(x_j)s and ln
-		//	vector<double> h(10);
-		//	vector<double> ln_h(10);
-		//	vector<double> ex_j(10);
-		//	vector<double> ln_ex_j(10);
-
-		//	// for loop to run with diffrent size hs
-
-		//	//counter to help update h & ex_j
-		//	vector<double> doubles(10);
-		//	//named doubles because each entry is a double of the previous
-		//	//and this vector is used to double the numsubintervals each iteration
-
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		doubles[i] = pow(2.0, (i + 1));
-		//	}
-
-		//	//for loop to run the appx over and over w/ diff h.
-		//	for (int j = 0; j < 10; j++)
-		//	{
-
-		//		// create the 2 pt bvp approximation
-		//		double numsubintervals = doubles[j];
-		//		double * subintervals = new double[numsubintervals];
-		//		for (int i = 0; i < numsubintervals; i++)
-		//		{
-		//			subintervals[i] = (dom[1] - dom[0]) / numsubintervals;
-		//		}
-		//		//create subintervals size vector
-		//		h[j] = (dom[1] - dom[0]) / numsubintervals;
-
-		//		// create the approximation for the new stepinterval size
-		//		TwoPointBVPAppr *method = new TwoPointBVPAppr(numsubintervals,
-		//			subintervals, prob);
-
-		//		//method->set_intial_guess_seed(seed);
-
-		//		//solve and   find the maximum error: e(x_j) 
-		//		//for the new step size h
-		//		ex_j[j] = method->find_max_error(maxIters, Toler);
-		//	}
-
-		//	//find the natural log of the subinterval lengths and errors
-		//	//for plotting
-
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		ln_h[i] = log(h[i]);
-		//		ln_ex_j[i] = log(ex_j[i]);
-		//	}
-
-		//	// output the subinterval lenght vs error to a file
-		//	ofstream fileout;
-		//	fileout.open("subintervallenghtvserror.txt");
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		fileout << h[i] << "\t" << ex_j[i] << " " << endl;
-		//	}
-		//	fileout.close();
-
-		//	// output the ln of subinterval lenght and ln of errors to a file
-		//	fileout.open("ln_subintervallenghtvsln_error.txt");
-		//	for (int i = 0; i < 10; i++)
-		//	{
-		//		fileout << ln_h[i] << "\t" << ln_ex_j[i] << " " << endl;
-		//	}
-		//	fileout.close();
-
-		//	//delete vars associated with the problem
-		//	delete[]rbval;
-		//	delete[]lbval;
-		//	delete prob;
-		//	delete[]dom;
-		//}
-
+		timelevel[i] = timelevel[i - 1] + timestep;
 	}
-	//------------------------------------------------------
-	// end of section that finds l infinty norm
-	//-------------------------------------------------------
+	//Crete the FinDiff method object
+	ParabolicIBVPSolver *fdmethod;
+
+	//Specify which method is used
+	fdmethod = new BackwardEuler(apprbvp);
+
+	//create the time interval and intial guess
+	vector<double> timeinterval(2);
+	vector<double> Ul(numsubintervals + 1);
+	for (int i = 0; i <= numsubintervals; i++)
+	{
+		Ul[i] = initialcondition(xcoord[i]);
+	}
+	//Create Ur vector(solution at  right time boundary) and iteratively
+	//solve for it at each time interval from t_0 to t_F
+	vector<double> Ur;
+	for (int i = 1; i <= numtimesteps; i++)
+	{
+		timeinterval[0] = timelevel[i - 1];
+		timeinterval[1] = timelevel[i];
+		Ur = fdmethod->one_step_march(timeinterval, Ul);
+		Ul = Ur;
+	}
+
+	//Clean up memory
+	delete apprbvp;
+	delete fdmethod;
+	delete[]subintervals;
+	delete prob;
+	delete[]dom;
+
 
 	return 0;
 }

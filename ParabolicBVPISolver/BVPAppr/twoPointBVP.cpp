@@ -1,7 +1,7 @@
 #include "twoPointBVP.h"
 
 
-// A C++ class implementation for two point BVPs
+// A C++ class implementation for two point BVPs and some other stuff
 
 TwoPointBVP::TwoPointBVP(double *dom, double(*dFunc) (vector<double> &))
 {
@@ -111,39 +111,47 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 	ofstream fileout;
 	fileout.open("problem_info.txt");
 	fileout << "************************************************************************ \n";
-	fileout << " Some info regarding the two point BVP problem and approximation: \n";
+	fileout << " Some info regarding the two" << 
+	" point BVP problem and approximation: \n";
 
 
-	fileout << " Domain is:(" << domain[0] << "," << domain[1] << ")" << endl;
+	fileout << " Domain is:(" << domain[0] << "," << domain[1] << ")" 
+			<< endl;
 
 	if (leftBdryIsDirichlet)
 	{
-		fileout << " Left boundary is Dirichlet with value: " << leftBdryValues[1] << endl;
+		fileout << " Left boundary is Dirichlet with value: " 
+				<< leftBdryValues[1] << endl;
 	}
 	else if (leftBdryValues[0] == 0)
 	{
-		fileout << " Left Boundary is Neumann with g_0: " << leftBdryValues[1] << endl;
+		fileout << " Left Boundary is Neumann with g_0: " 
+				<< leftBdryValues[1] << endl;
 	}
 	else
 	{
-		fileout << " Left Boundary is Robin with gamma_0: " << leftBdryValues[0]
-			<< " and g_0: " << leftBdryValues[1] << endl;
+		fileout << " Left Boundary is Robin with gamma_0: " 
+				<< leftBdryValues[0]
+				<< " and g_0: " << leftBdryValues[1] << endl;
 	}
 
 
 
 	if (rightBdryIsDirichlet)
 	{
-		fileout << " Right boundary is Dirichlet with value: " << rightBdryValues[1] << endl;
+		fileout << " Right boundary is Dirichlet with value: " 
+				<< rightBdryValues[1] << endl;
 	}
 	else if (rightBdryValues[0] == 0)
 	{
-		fileout << " Right Boundary is Neumann with g_L: " << rightBdryValues[1] << endl;
+		fileout << " Right Boundary is Neumann with g_L: " 
+				<< rightBdryValues[1] << endl;
 	}
 	else
 	{
-		fileout << " Right Boundary is Robin with gamma_L: " << rightBdryValues[0]
-			<< " and g_L: " << rightBdryValues[1] << endl;
+		fileout << " Right Boundary is Robin with gamma_L: " 
+				<< rightBdryValues[0]
+				<< " and g_L: " << rightBdryValues[1] << endl;
 	}
 
 	if (reactionIsPresent)
@@ -164,14 +172,13 @@ void TwoPointBVP::display_info_TwoPointBVP() const
 		fileout << " Forcing function is not present. \n";
 	}
 
-	fileout << "************************************************************************ \n";
+	fileout << "******************************************************* \n";
 	fileout.close();
 	return;
 }
 
-
-
-vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, double domRight)
+vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, 
+											double domRight)
 {
 	vector<double> trueSoln(numEvals);
 	double steps = (domRight-domLeft) / (numEvals-1);
@@ -183,6 +190,49 @@ vector<double> TwoPointBVP::true_solution(int numEvals, double domLeft, double d
 	}
 	return trueSoln;
 }
+
+//---------------For PDEs--------------------------------------------------
+
+//-------------------------------------------------------------------------
+
+void TwoPointBVP::set_left_bdry(bool _leftIsDirichlet, double gamma_l, 
+								double(*g_a)(double &))
+{
+	leftBdryIsDirichlet = _leftIsDirichlet;
+	ga = g_a;
+	gamma_a = gamma_l;
+}
+
+void TwoPointBVP::set_right_bdry(bool _rightIsDirichlet, double gamma_r, 
+								double(*g_b)(double &))
+{
+	rightBdryIsDirichlet = _rightIsDirichlet;
+	gb = g_b;
+	gamma_b = gamma_r;
+}
+
+double TwoPointBVP::calcLeftBdry(double t)
+{
+	return ga(t);
+}
+
+double TwoPointBVP::calcRightBdry(double t)
+{
+	return gb(t);
+}
+
+void TwoPointBVP::AssembleBdrys(double t)
+{
+	double *val = new double[2];
+	val[0] = gamma_a;
+	val[1] = calcLeftBdry(t);
+	leftBdryValues = val;
+	val[0] = gamma_b;
+	val[1] = calcRightBdry(t);
+	rightBdryValues = val;
+}
+
+
 
 TwoPointBVP::~TwoPointBVP()
 {
